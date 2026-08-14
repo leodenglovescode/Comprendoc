@@ -4,7 +4,7 @@
 
 Comprendoc is a privacy-minded document accessibility tool built for the OpenAI Build for Good developer challenge. It extracts document text in the browser, explains difficult paperwork in the reader's preferred language, identifies deadlines and required actions, links every deadline back to its source, and creates calendar events without requiring an account. The interface automatically follows the browser language, has complete interface translations for six languages, and offers explanations in 13 mainstream languages.
 
-The repository includes a zero-cost static demo in [`demo/`](./demo) for Cloudflare Pages. It accepts no user documents, makes no network or paid model requests, and contains only synthetic examples. Clone and self-host the main application for the complete workflow.
+The repository includes a zero-cost static demo in [`demo/`](./demo) for Cloudflare Workers Static Assets. It accepts no user documents, makes no network or paid model requests, and contains only synthetic examples. Clone and self-host the main application for the complete workflow.
 
 ## What we built
 
@@ -57,7 +57,7 @@ Comprendoc is an explanation aid, not an official authority or professional advi
 - Mammoth for local DOCX extraction
 - Browser-native ICS, Google Calendar, and Outlook Calendar generation
 - Cloudflare-compatible worker build for the functional self-hosted application
-- A separate dependency-free static demo in `demo/` for Cloudflare Pages
+- A separate static demo in `demo/` deployed with Cloudflare Workers Static Assets
 - Encrypted SQLite/D1 provider vault for OpenAI, Anthropic, DeepSeek, GLM, Kimi, and Mistral
 - Encrypted SQLite/D1 document library with reopen and confirmed-delete flows
 
@@ -86,7 +86,7 @@ Put that value in `COMPRENDOC_MASTER_KEY` inside `.env.local`. This is a server 
 
 Start the app and open **Settings**. Settings and the document library open directly because Comprendoc is designed as a local-first, personal self-hosted service. Paste each provider API key once and save it. The key is sent only to the local server, encrypted before SQLite/D1 storage, and never returned by any API or displayed in the frontend after saving. During document analysis, the server decrypts the selected key only in memory and sends it to that provider over HTTPS. The browser receives only provider status, model metadata, and the finished analysis.
 
-Because there is deliberately no application login or administrator prompt, keep the working app on your own device or private network. If you expose it to the internet, put it behind authentication in your reverse proxy; otherwise visitors could change providers, use your configured API quota, or access saved documents. The Cloudflare Pages demo is separate static frontend code: it contains no upload controls, backend routes, provider settings, storage, or paid analysis.
+Because there is deliberately no application login or administrator prompt, keep the working app on your own device or private network. If you expose it to the internet, put it behind authentication in your reverse proxy; otherwise visitors could change providers, use your configured API quota, or access saved documents. The Cloudflare static demo is separate frontend code: it contains no upload controls, application endpoints, provider settings, storage, or paid analysis.
 
 To force the full application into synthetic-only showcase mode, set:
 
@@ -107,15 +107,15 @@ npm run build
 npm test
 ```
 
-## Deploy the static demo to Cloudflare Pages
+## Deploy the static demo with Cloudflare Workers Builds
 
-Create a Pages project from this GitHub repository and use:
+Connect this GitHub repository to a Cloudflare Worker and use:
 
 - Production branch: `main`
 - Root directory: `demo`
-- Build command: leave blank
-- Build output directory: `.`
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy`
 
-The demo is plain HTML, CSS, and JavaScript with a strict Content Security Policy. It automatically follows the browser language, supports all six fully translated interface locales, and makes no network requests.
+The demo is plain HTML, CSS, and JavaScript deployed with Workers Static Assets. A minimal Worker adds a strict Content Security Policy and cache headers; it has no application endpoints. The frontend automatically follows the browser language, supports all six fully translated interface locales, and makes no network requests.
 
 Never commit `.env.local`, uploaded documents, real personal documents, tokens, or API keys.

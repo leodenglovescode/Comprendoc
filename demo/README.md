@@ -1,18 +1,21 @@
 # Comprendoc static demo
 
-This directory is a zero-cost, frontend-only demo for Cloudflare Pages. It uses synthetic documents and makes no network requests, uploads, API calls, or writes to storage.
+This directory is a zero-cost static demo for Cloudflare Workers Static Assets. It uses synthetic documents and makes no browser network requests, uploads, API calls, or writes to storage. A tiny Worker adds security and cache headers before serving the static files.
 
-## Cloudflare Pages settings
+## Cloudflare Workers Builds settings
 
 - Production branch: `main`
 - Root directory: `demo`
-- Build command: leave blank
-- Build output directory: `.`
+- Build command: `npm run build`
+- Deploy command: `npx wrangler deploy`
 
-Cloudflare Pages will serve `index.html` directly. The included `_headers` file applies a strict content security policy, and `_redirects` provides a single-page fallback.
+The build copies only the four public assets into `dist/`. Wrangler deploys them using Workers Static Assets, while `worker.js` applies the strict security headers. The project also keeps `_headers` and `_redirects` for compatibility with legacy Pages deployments.
 
 To preview locally:
 
 ```bash
-npx wrangler pages dev demo
+cd demo
+npm install
+npm run build
+npm run dev
 ```

@@ -38,7 +38,7 @@ test("server-renders the Comprendoc product shell", async () => {
   assert.match(html, /No accounts/);
 });
 
-test("hosted Sites build is a synthetic-only demo", async () => {
+test("integrated showcase mode remains synthetic-only", async () => {
   const response = await render("comprendoc.example.chatgpt.site");
   assert.equal(response.status, 200);
   const html = await response.text();
@@ -119,12 +119,21 @@ test("disclosure names the provider that receives extracted text", () => {
   assert.doesNotMatch(providerDisclosure(messages("fr").disclosure, "Anthropic"), /OpenAI/);
 });
 
-test("Cloudflare Pages demo is static, synthetic-only, and locked down", async () => {
-  const [html, script, headers] = await Promise.all([
+test("Cloudflare demo builds with the dashboard defaults and stays synthetic-only", async () => {
+  const [html, script, headers, packageText, wranglerText, worker] = await Promise.all([
     readFile(new URL("../demo/index.html", import.meta.url), "utf8"),
     readFile(new URL("../demo/app.js", import.meta.url), "utf8"),
     readFile(new URL("../demo/_headers", import.meta.url), "utf8"),
+    readFile(new URL("../demo/package.json", import.meta.url), "utf8"),
+    readFile(new URL("../demo/wrangler.jsonc", import.meta.url), "utf8"),
+    readFile(new URL("../demo/worker.js", import.meta.url), "utf8"),
   ]);
+  const demoPackage = JSON.parse(packageText);
+  const wrangler = JSON.parse(wranglerText);
+  assert.equal(demoPackage.scripts.build, "node scripts/build.mjs");
+  assert.equal(demoPackage.scripts.deploy, "wrangler deploy");
+  assert.equal(wrangler.assets.directory, "./dist");
+  assert.equal(wrangler.assets.not_found_handling, "single-page-application");
   assert.match(html, /Safe interactive demo/);
   assert.match(html, /github\.com\/leodenglovescode\/comprendoc/i);
   assert.doesNotMatch(html, /type=["']file["']/i);
@@ -136,4 +145,6 @@ test("Cloudflare Pages demo is static, synthetic-only, and locked down", async (
   assert.match(script, /\bko:/);
   assert.match(headers, /connect-src 'none'/);
   assert.match(headers, /frame-ancestors 'none'/);
+  assert.match(worker, /connect-src 'none'/);
+  assert.doesNotMatch(worker, /\/api\//);
 });
