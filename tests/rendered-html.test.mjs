@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { readFile } from "node:fs/promises";
 import { detectLocale, interfaceLanguages, languageLabel, messages, missingTranslationKeys, providerDisclosure, uiLanguages } from "../lib/i18n.ts";
 
 async function render(host = "localhost") {
@@ -116,4 +117,23 @@ test("disclosure names the provider that receives extracted text", () => {
   assert.equal(providerDisclosure(messages("zh-CN").disclosure, "DeepSeek"), "提取的文本（不是原文件）将发送给 DeepSeek 分析。");
   assert.match(providerDisclosure(messages("de").disclosure, "Mistral"), /Mistral/);
   assert.doesNotMatch(providerDisclosure(messages("fr").disclosure, "Anthropic"), /OpenAI/);
+});
+
+test("Cloudflare Pages demo is static, synthetic-only, and locked down", async () => {
+  const [html, script, headers] = await Promise.all([
+    readFile(new URL("../demo/index.html", import.meta.url), "utf8"),
+    readFile(new URL("../demo/app.js", import.meta.url), "utf8"),
+    readFile(new URL("../demo/_headers", import.meta.url), "utf8"),
+  ]);
+  assert.match(html, /Safe interactive demo/);
+  assert.match(html, /github\.com\/leodenglovescode\/comprendoc/i);
+  assert.doesNotMatch(html, /type=["']file["']/i);
+  assert.doesNotMatch(script, /\bfetch\s*\(|XMLHttpRequest|WebSocket|\/api\//);
+  assert.match(script, /"zh-CN"/);
+  assert.match(script, /"zh-TW"/);
+  assert.match(script, /\bfr:/);
+  assert.match(script, /\bde:/);
+  assert.match(script, /\bko:/);
+  assert.match(headers, /connect-src 'none'/);
+  assert.match(headers, /frame-ancestors 'none'/);
 });

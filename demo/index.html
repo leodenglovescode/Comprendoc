@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Comprendoc turns difficult documents into clear next steps. Explore a safe, synthetic demo.">
+  <meta name="theme-color" content="#176d62">
+  <title>Comprendoc — Interactive demo</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#top" aria-label="Comprendoc"><span class="brand-mark" aria-hidden="true"><i></i></span><strong>Comprendoc</strong></a>
+    <nav aria-label="Main navigation" data-i18n-aria="navLabel">
+      <a href="#how" data-i18n="how">How it works</a>
+      <a href="https://github.com/leodenglovescode/comprendoc" rel="noreferrer">GitHub</a>
+      <label class="locale-picker"><span aria-hidden="true">◎</span><span class="sr-only" data-i18n="language">Language</span><select id="locale-select" aria-label="Language"></select></label>
+      <span class="demo-badge" data-i18n="demo">Demo</span>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="eyebrow"><span></span><span data-i18n="tagline">Comprehend the docs. Act on what matters.</span></div>
+      <h1><span data-i18n="hero1">Understand the paperwork.</span><br><em data-i18n="hero2">Know what to do next.</em></h1>
+      <p data-i18n="heroCopy">Explore how Comprendoc turns a complicated document into a clear explanation, deadlines, and next steps.</p>
+      <div class="notice"><span class="notice-icon" aria-hidden="true">✦</span><div><strong data-i18n="safeDemo">Safe interactive demo</strong><p data-i18n="safeCopy">Synthetic documents only. No uploads, API calls, accounts, or saved data.</p></div></div>
+    </section>
+
+    <section class="examples" aria-labelledby="examples-title">
+      <span class="section-label" data-i18n="tryExample">TRY AN EXAMPLE</span>
+      <h2 id="examples-title" data-i18n="chooseExample">Choose a sample document</h2>
+      <p data-i18n="chooseCopy">See a complete processed result without sending anything anywhere.</p>
+      <div class="example-grid" id="example-grid"></div>
+    </section>
+
+    <section class="result" id="result" hidden aria-live="polite"></section>
+
+    <section class="how" id="how">
+      <span class="section-label" data-i18n="howLabel">HOW IT WORKS</span>
+      <h2 data-i18n="howTitle">From red tape to a clear next step</h2>
+      <div class="steps">
+        <article><span>01</span><i aria-hidden="true">▤</i><h3 data-i18n="step1">Add your document</h3><p data-i18n="step1Copy">The self-hosted app reads PDF, DOCX, TXT, or pasted text locally.</p></article>
+        <article><span>02</span><i aria-hidden="true">文</i><h3 data-i18n="step2">Choose your language</h3><p data-i18n="step2Copy">Select an explanation language and the level of detail you prefer.</p></article>
+        <article><span>03</span><i aria-hidden="true">✓</i><h3 data-i18n="step3">Act with confidence</h3><p data-i18n="step3Copy">Review deadlines, actions, source wording, and calendar-ready dates.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer><div class="footer-inner"><div class="footer-brand"><span class="brand-mark small" aria-hidden="true"><i></i></span><strong>Comprendoc</strong></div><p data-i18n="footer">AI can make mistakes. Verify important details against the original document.</p><span data-i18n="footerMeta">Static demo · No data leaves your browser</span></div></footer>
+</body>
+</html>

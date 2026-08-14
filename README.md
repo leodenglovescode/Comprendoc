@@ -4,7 +4,7 @@
 
 Comprendoc is a privacy-minded document accessibility tool built for the OpenAI Build for Good developer challenge. It extracts document text in the browser, explains difficult paperwork in the reader's preferred language, identifies deadlines and required actions, links every deadline back to its source, and creates calendar events without requiring an account. The interface automatically follows the browser language, has complete interface translations for six languages, and offers explanations in 13 mainstream languages.
 
-The public ChatGPT Sites deployment is deliberately a zero-cost, synthetic-only demo: it has no login, accepts no user documents, makes no paid model requests, and blocks the analysis endpoint server-side. Clone and self-host the repository for the working application.
+The repository includes a zero-cost static demo in [`demo/`](./demo) for Cloudflare Pages. It accepts no user documents, makes no network or paid model requests, and contains only synthetic examples. Clone and self-host the main application for the complete workflow.
 
 ## What we built
 
@@ -56,8 +56,8 @@ Comprendoc is an explanation aid, not an official authority or professional advi
 - Tesseract.js for local OCR fallback on pages without useful embedded text
 - Mammoth for local DOCX extraction
 - Browser-native ICS, Google Calendar, and Outlook Calendar generation
-- Cloudflare-compatible worker build for OpenAI Sites hosting
-- Two enforced modes: a read-only public demo on `*.chatgpt.site`, and a functional self-hosted app elsewhere
+- Cloudflare-compatible worker build for the functional self-hosted application
+- A separate dependency-free static demo in `demo/` for Cloudflare Pages
 - Encrypted SQLite/D1 provider vault for OpenAI, Anthropic, DeepSeek, GLM, Kimi, and Mistral
 - Encrypted SQLite/D1 document library with reopen and confirmed-delete flows
 
@@ -86,9 +86,9 @@ Put that value in `COMPRENDOC_MASTER_KEY` inside `.env.local`. This is a server 
 
 Start the app and open **Settings**. Settings and the document library open directly because Comprendoc is designed as a local-first, personal self-hosted service. Paste each provider API key once and save it. The key is sent only to the local server, encrypted before SQLite/D1 storage, and never returned by any API or displayed in the frontend after saving. During document analysis, the server decrypts the selected key only in memory and sends it to that provider over HTTPS. The browser receives only provider status, model metadata, and the finished analysis.
 
-Because there is deliberately no application login or administrator prompt, keep the working app on your own device or private network. If you expose it to the internet, put it behind authentication in your reverse proxy; otherwise visitors could change providers, use your configured API quota, or access saved documents. The public `chatgpt.site` demo is a separate read-only mode that blocks provider settings, document storage, uploads, and paid analysis server-side.
+Because there is deliberately no application login or administrator prompt, keep the working app on your own device or private network. If you expose it to the internet, put it behind authentication in your reverse proxy; otherwise visitors could change providers, use your configured API quota, or access saved documents. The Cloudflare Pages demo is separate static frontend code: it contains no upload controls, backend routes, provider settings, storage, or paid analysis.
 
-To force a deployment into synthetic-only showcase mode on a non-Sites hostname, set:
+To force the full application into synthetic-only showcase mode, set:
 
 ```bash
 COMPRENDOC_MODE=demo
@@ -106,5 +106,16 @@ Open `http://localhost:3000`. For a production verification build:
 npm run build
 npm test
 ```
+
+## Deploy the static demo to Cloudflare Pages
+
+Create a Pages project from this GitHub repository and use:
+
+- Production branch: `main`
+- Root directory: `demo`
+- Build command: leave blank
+- Build output directory: `.`
+
+The demo is plain HTML, CSS, and JavaScript with a strict Content Security Policy. It automatically follows the browser language, supports all six fully translated interface locales, and makes no network requests.
 
 Never commit `.env.local`, uploaded documents, real personal documents, tokens, or API keys.
