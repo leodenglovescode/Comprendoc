@@ -1,4 +1,5 @@
 import type { ExtractedDocument, SourcePage } from "./types";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 const MAX_FILE_BYTES = 25 * 1024 * 1024;
 
@@ -23,7 +24,10 @@ export async function extractDocument(file: File, onProgress: (message: string, 
 
 async function extractPdf(file: File, onProgress: (message: string, progress: number) => void): Promise<ExtractedDocument> {
   const pdfjs = await import("pdfjs-dist");
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+  // Importing with Vite's ?url suffix emits a browser-served asset URL in both
+  // dev and production. Building a URL from import.meta.url is unsafe here
+  // because vinext represents source modules with a file:/// base.
+  pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
   let pdf;
   try { pdf = await pdfjs.getDocument({ data: new Uint8Array(await file.arrayBuffer()) }).promise; }
   catch { throw new Error("This PDF could not be opened. It may be corrupt, encrypted, or password-protected."); }
