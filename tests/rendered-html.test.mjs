@@ -71,6 +71,8 @@ test("public demo blocks provider settings and exposes no configured providers",
   assert.deepEqual(await status.json(), { providers: [] });
   const settings = await worker.fetch(new Request("https://comprendoc.example.chatgpt.site/api/providers"), environment, context);
   assert.equal(settings.status, 403);
+  const documents = await worker.fetch(new Request("https://comprendoc.example.chatgpt.site/api/documents"), environment, context);
+  assert.equal(documents.status, 403);
 });
 
 test("supports requested interface and explanation languages", () => {

@@ -2,7 +2,7 @@
 
 **Comprehend the docs. Act on what matters.**
 
-Comprendoc is a privacy-minded document accessibility tool built for the OpenAI Build for Good developer challenge. It extracts document text in the browser, explains difficult paperwork in the reader's preferred language, identifies deadlines and required actions, links every deadline back to its source, and creates calendar events without requiring an account. The interface automatically follows the browser language, supports 11 mainstream languages, and includes a manual language picker.
+Comprendoc is a privacy-minded document accessibility tool built for the OpenAI Build for Good developer challenge. It extracts document text in the browser, explains difficult paperwork in the reader's preferred language, identifies deadlines and required actions, links every deadline back to its source, and creates calendar events without requiring an account. The interface automatically follows the browser language, has complete interface translations for six languages, and offers explanations in 13 mainstream languages.
 
 The public ChatGPT Sites deployment is deliberately a zero-cost, synthetic-only demo: it has no login, accepts no user documents, makes no paid model requests, and blocks the analysis endpoint server-side. Clone and self-host the repository for the working application.
 
@@ -37,9 +37,9 @@ The app includes synthetic enrollment and apartment examples so the deadline, so
 
 ## Privacy and safety
 
-- No accounts or persistent document history
+- No accounts; the self-hosted document library is protected by the administrator token
 - Original files are never sent to the backend
-- No uploaded-document storage
+- Saving is opt-in; saved extracted text and processed results are encrypted at rest with AES-256-GCM
 - Provider keys are encrypted at rest with AES-256-GCM and are never returned by the settings API
 - Extracted document text is not logged or used in analytics
 - Uploaded document instructions are treated as untrusted data
@@ -58,6 +58,7 @@ Comprendoc is an explanation aid, not an official authority or professional advi
 - Cloudflare-compatible worker build for OpenAI Sites hosting
 - Two enforced modes: a read-only public demo on `*.chatgpt.site`, and a functional self-hosted app elsewhere
 - Encrypted SQLite/D1 provider vault for OpenAI, Anthropic, DeepSeek, GLM, Kimi, and Mistral
+- Encrypted SQLite/D1 document library with reopen and confirmed-delete flows
 
 ## How Codex helped
 
@@ -81,7 +82,7 @@ openssl rand -base64 32
 openssl rand -hex 32
 ```
 
-Put the first value in `COMPRENDOC_MASTER_KEY` and the second in `COMPRENDOC_ADMIN_TOKEN` inside `.env.local`. Start the app, open **Settings**, enter the administrator token, and save any combination of supported provider keys. Keys are encrypted before SQLite/D1 storage, are decrypted only in server memory for a model request, and are never sent back to the browser. Back up the master key separately: losing or changing it makes every saved provider key undecryptable.
+Put the first value in `COMPRENDOC_MASTER_KEY` and the second in `COMPRENDOC_ADMIN_TOKEN` inside `.env.local`. Start the app, open **Settings**, enter the administrator token, and save any combination of supported provider keys. Keys and saved processed documents are encrypted before SQLite/D1 storage. Provider keys are decrypted only in server memory for a model request and are never sent back to the browser. Back up the master key separately: losing or changing it makes every saved provider key and document undecryptable.
 
 The administrator token protects settings changes, but the working app is intentionally designed as a personal self-hosted service. Keep it on a private network or place it behind your reverse proxy's authentication before exposing it to the internet; otherwise visitors could use the configured providers through the analysis endpoint.
 

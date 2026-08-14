@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, Check, ChevronDown, CircleDollarSign, Clock3, Download, FileCheck2, FileText, Globe2, Info, Languages, LoaderCircle, LockKeyhole, Search, Settings2, ShieldCheck, Sparkles, Upload, X } from "lucide-react";
+import { AlertCircle, ArrowLeft, ArrowRight, CalendarDays, Check, ChevronDown, CircleDollarSign, Clock3, Download, FileCheck2, FileText, Globe2, Info, Languages, Library, LoaderCircle, LockKeyhole, Save, Search, Settings2, ShieldCheck, Sparkles, Upload, X } from "lucide-react";
 import { extractDocument } from "../lib/extract";
 import { examples } from "../lib/examples";
 import { downloadIcs, googleCalendarUrl, outlookCalendarUrl } from "../lib/calendar";
 import type { AnalysisResult, Deadline, ExtractedDocument } from "../lib/types";
+import type { SavedDocument } from "../lib/saved-document-storage";
 import { detectLocale, interfaceLanguages, languageLabel, messages, providerDisclosure, uiLanguages, type Locale } from "../lib/i18n";
 
 const levels = ["Simple", "Standard", "Detailed"];
@@ -30,8 +31,11 @@ export function ComprendocApp({ demoMode }: { demoMode: boolean }) {
   const [sourceOpen, setSourceOpen] = useState(false);
   const [providers, setProviders] = useState<ProviderOption[]>([]);
   const [provider, setProvider] = useState("");
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveMessage, setSaveMessage] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
   const sourceRef = useRef<HTMLDivElement>(null);
+  const savedDocumentLoaded = useRef(false);
   const t = messages(locale);
 
   useEffect(() => {
@@ -46,6 +50,26 @@ export function ComprendocApp({ demoMode }: { demoMode: boolean }) {
     }).catch(() => undefined);
     return () => window.clearTimeout(timer);
   }, [demoMode]);
+
+  useEffect(() => {
+    if (demoMode || savedDocumentLoaded.current) return;
+    const id = new URLSearchParams(window.location.search).get("saved");
+    if (!id) return;
+    savedDocumentLoaded.current = true;
+    const timer = window.setTimeout(() => {
+      const token = window.sessionStorage.getItem("comprendoc-admin-token") || "";
+      if (!token) { setError(t.unlockLibraryFirst); return; }
+      setStage("processing"); setProgress({ message: t.loadingDocuments, value: 55 });
+      fetch(`/api/documents?id=${encodeURIComponent(id)}`, { headers: { "X-Comprendoc-Admin-Token": token } })
+        .then(async (response) => ({ response, body: await response.json() as { document?: SavedDocument } }))
+        .then(({ response, body }) => {
+          if (!response.ok || !body.document) throw new Error();
+          setDocument(body.document.document); setAnalysis(body.document.analysis); setLanguage(body.document.language); setLevel(body.document.level); setSaveState("saved"); setStage("result");
+        })
+        .catch(() => { setError(t.loadDocumentError); setStage("start"); });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [demoMode, locale, t.loadDocumentError, t.loadingDocuments, t.unlockLibraryFirst]);
 
   useEffect(() => {
     const config = uiLanguages.find((item) => item.code === locale) || uiLanguages[0];
@@ -103,12 +127,24 @@ export function ComprendocApp({ demoMode }: { demoMode: boolean }) {
     finally { window.clearTimeout(timer); }
   }
 
+  async function saveProcessedDocument() {
+    if (!document || !analysis || demoMode || saveState === "saving" || saveState === "saved") return;
+    const token = window.sessionStorage.getItem("comprendoc-admin-token") || "";
+    if (!token) { setSaveState("error"); setSaveMessage(t.unlockLibraryFirst); return; }
+    setSaveState("saving"); setSaveMessage("");
+    try {
+      const response = await fetch("/api/documents", { method: "POST", headers: { "Content-Type": "application/json", "X-Comprendoc-Admin-Token": token }, body: JSON.stringify({ document, analysis, language, level }) });
+      if (!response.ok) throw new Error();
+      setSaveState("saved"); setSaveMessage(t.documentSaved);
+    } catch { setSaveState("error"); setSaveMessage(t.saveDocumentError); }
+  }
+
   function viewSource(deadline: Deadline) {
     setSourceOpen(true);
     window.setTimeout(() => { sourceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }); window.document.getElementById(`source-${deadline.id}`)?.focus(); }, 120);
   }
 
-  function reset() { setStage("start"); setDocument(null); setAnalysis(null); setError(""); setPastedText(""); setPasteOpen(false); }
+  function reset() { setStage("start"); setDocument(null); setAnalysis(null); setError(""); setPastedText(""); setPasteOpen(false); setSaveState("idle"); setSaveMessage(""); window.history.replaceState({}, "", "/"); }
 
   const rtl = (uiLanguages.find((item) => item.code === locale)?.dir || "ltr") === "rtl";
   return (
@@ -117,9 +153,9 @@ export function ComprendocApp({ demoMode }: { demoMode: boolean }) {
       {stage === "start" && <StartView demoMode={demoMode} dragging={dragging} setDragging={setDragging} onFile={handleFile} inputRef={fileInput} pasteOpen={pasteOpen} setPasteOpen={setPasteOpen} pastedText={pastedText} setPastedText={setPastedText} usePastedText={usePastedText} tryExample={tryExample} error={error} t={t} />}
       {stage === "review" && document && <ReviewView document={document} language={language} setLanguage={setLanguage} level={level} setLevel={setLevel} analyze={analyze} reset={reset} error={error} locale={locale} t={t} providers={providers} provider={provider} setProvider={setProvider} />}
       {stage === "processing" && <ProcessingView progress={progress} name={document?.name} t={t} />}
-      {stage === "result" && analysis && document && <ResultView analysis={analysis} document={document} language={language} level={level} locale={locale} reset={reset} viewSource={viewSource} sourceOpen={sourceOpen} setSourceOpen={setSourceOpen} sourceRef={sourceRef} activeCalendar={activeCalendar} setActiveCalendar={setActiveCalendar} demoMode={demoMode} t={t} />}
+      {stage === "result" && analysis && document && <ResultView analysis={analysis} document={document} language={language} level={level} locale={locale} reset={reset} viewSource={viewSource} sourceOpen={sourceOpen} setSourceOpen={setSourceOpen} sourceRef={sourceRef} activeCalendar={activeCalendar} setActiveCalendar={setActiveCalendar} demoMode={demoMode} saveState={saveState} saveMessage={saveMessage} saveDocument={saveProcessedDocument} t={t} />}
       {activeCalendar && <CalendarModal deadline={activeCalendar} reminder={reminder} setReminder={setReminder} close={() => setActiveCalendar(null)} locale={locale} t={t} />}
-      <footer className="site-footer"><div className="footer-inner"><div className="footer-brand"><BrandMark /><strong>Comprendoc</strong></div><p>{t.footer}</p><span>{demoMode ? `${t.demo} · ${t.footerMeta}` : t.footerMeta}</span></div></footer>
+      <footer className="site-footer"><div className="footer-inner"><div className="footer-brand"><BrandMark /><strong>Comprendoc</strong></div><p>{t.footer}</p><span>{demoMode ? `${t.demo} · ${t.footerMeta}` : t.selfHostedFooterMeta}</span></div></footer>
     </main>
   );
 }
@@ -127,7 +163,7 @@ export function ComprendocApp({ demoMode }: { demoMode: boolean }) {
 function BrandMark() { return <span className="brand-mark" aria-hidden="true"><span /></span>; }
 
 function Header({ onReset, compact, demoMode, locale, changeLocale, t }: { onReset: () => void; compact: boolean; demoMode: boolean; locale: Locale; changeLocale: (locale: Locale) => void; t: ReturnType<typeof messages> }) {
-  return <header className={`topbar ${compact ? "compact" : ""}`}><button className="brand" onClick={onReset} aria-label="Comprendoc"><BrandMark /><span>Comprendoc</span></button><nav aria-label={t.mainNavigation}><a href="#privacy"><ShieldCheck size={16} />{t.privacy}</a><a href="#how-it-works">{t.how}</a>{!demoMode && <Link className="nav-button" href="/settings"><Settings2 size={15}/>{t.settings}</Link>}<label className="locale-picker"><Globe2 size={15}/><span className="visually-hidden">{t.interfaceLanguage}</span><select value={locale} onChange={(event) => changeLocale(event.target.value as Locale)}>{interfaceLanguages.map((item) => <option key={item.code} value={item.code}>{languageLabel(locale, item.code)}</option>)}</select></label><span className="challenge-badge">{demoMode ? t.demo : t.buildForGood}</span></nav></header>;
+  return <header className={`topbar ${compact ? "compact" : ""}`}><button className="brand" onClick={onReset} aria-label="Comprendoc"><BrandMark /><span>Comprendoc</span></button><nav aria-label={t.mainNavigation}><a href="#privacy"><ShieldCheck size={16} />{t.privacy}</a><a href="#how-it-works">{t.how}</a>{!demoMode && <><Link className="nav-button" href="/library"><Library size={15}/>{t.library}</Link><Link className="nav-button" href="/settings"><Settings2 size={15}/>{t.settings}</Link></>}<label className="locale-picker"><Globe2 size={15}/><span className="visually-hidden">{t.interfaceLanguage}</span><select value={locale} onChange={(event) => changeLocale(event.target.value as Locale)}>{interfaceLanguages.map((item) => <option key={item.code} value={item.code}>{languageLabel(locale, item.code)}</option>)}</select></label><span className="challenge-badge">{demoMode ? t.demo : t.buildForGood}</span></nav></header>;
 }
 
 function StartView({ demoMode, dragging, setDragging, onFile, inputRef, pasteOpen, setPasteOpen, pastedText, setPastedText, usePastedText, tryExample, error, t }: { demoMode: boolean; dragging: boolean; setDragging: (value: boolean) => void; onFile: (file?: File) => void; inputRef: React.RefObject<HTMLInputElement | null>; pasteOpen: boolean; setPasteOpen: (value: boolean) => void; pastedText: string; setPastedText: (value: string) => void; usePastedText: () => void; tryExample: (id: string) => void; error: string; t: ReturnType<typeof messages> }) {
@@ -170,10 +206,11 @@ function ProcessingView({ progress, name, t }: { progress: { message: string; va
   return <section className="processing-shell" aria-live="polite"><div className="processing-orbit"><div className="orbit-ring"/><FileText size={34}/></div><span className="kicker">{t.localWork}</span><h1>{progress.message}</h1><p>{name || t.preparing}</p><div className="progress-track"><span style={{ width: `${progress.value}%` }}/></div><div className="processing-steps"><span className={progress.value >= 10 ? "done" : ""}><Check size={15}/>{t.read}</span><span className={progress.value >= 38 ? "done" : ""}><Check size={15}/>{t.extract}</span><span className={progress.value >= 70 ? "done" : ""}><LoaderCircle size={15}/>{t.explainClearly}</span></div><div className="privacy-note"><LockKeyhole size={18}/>{t.originalPrivate}</div></section>;
 }
 
-function ResultView(props: { analysis: AnalysisResult; document: ExtractedDocument; language: string; level: string; locale: Locale; reset: () => void; viewSource: (deadline: Deadline) => void; sourceOpen: boolean; setSourceOpen: (value: boolean) => void; sourceRef: React.RefObject<HTMLDivElement | null>; activeCalendar: Deadline | null; setActiveCalendar: (deadline: Deadline | null) => void; demoMode: boolean; t: ReturnType<typeof messages> }) {
+function ResultView(props: { analysis: AnalysisResult; document: ExtractedDocument; language: string; level: string; locale: Locale; reset: () => void; viewSource: (deadline: Deadline) => void; sourceOpen: boolean; setSourceOpen: (value: boolean) => void; sourceRef: React.RefObject<HTMLDivElement | null>; activeCalendar: Deadline | null; setActiveCalendar: (deadline: Deadline | null) => void; demoMode: boolean; saveState: "idle" | "saving" | "saved" | "error"; saveMessage: string; saveDocument: () => void; t: ReturnType<typeof messages> }) {
   const a = props.analysis;
   const t = props.t;
-  return <section className="result-shell"><div className="result-toolbar"><button className="back-button" onClick={props.reset}><ArrowLeft size={17}/>{t.newDocument}</button><div><span><Languages size={15}/>{props.language}</span><span>{props.level}</span>{props.demoMode && <span>{t.demo}</span>}</div></div>
+  return <section className="result-shell"><div className="result-toolbar"><button className="back-button" onClick={props.reset}><ArrowLeft size={17}/>{t.newDocument}</button><div className="result-toolbar-actions"><span><Languages size={15}/>{props.language}</span><span>{props.level}</span>{props.demoMode && <span>{t.demo}</span>}{!props.demoMode && <><Link className="result-library-link" href="/library"><Library size={15}/>{t.library}</Link><button className={`save-document-button ${props.saveState === "saved" ? "saved" : ""}`} onClick={props.saveDocument} disabled={props.saveState === "saving" || props.saveState === "saved"}>{props.saveState === "saved" ? <Check size={15}/> : <Save size={15}/>} {props.saveState === "saving" ? t.savingDocument : props.saveState === "saved" ? t.saved : t.saveDocument}</button></>}</div></div>
+    {props.saveMessage && <p className={`save-document-message ${props.saveState === "error" ? "error" : ""}`}>{props.saveMessage}</p>}
     <div className="result-hero"><div className="document-type"><FileCheck2 size={15}/>{a.documentType}</div><h1>{a.title}</h1><p>{a.oneSentenceSummary}</p><div className="verified-line"><ShieldCheck size={16}/>{t.linked}</div></div>
     {(a.warnings.length > 0 || props.document.lowConfidenceOcr) && <div className="safety-banner"><AlertCircle size={21}/><div><strong>{t.extraLook}</strong><p>{a.warnings[0] || t.ocrWarning}</p></div></div>}
     <div className="result-grid"><div className="result-main">

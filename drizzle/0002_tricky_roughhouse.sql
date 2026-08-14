@@ -1,0 +1,1 @@
+CREATE INDEX `idx_saved_documents_created_at` ON `saved_documents` (`created_at`);
