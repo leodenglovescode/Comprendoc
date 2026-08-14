@@ -7,7 +7,7 @@ import { extractDocument } from "../lib/extract";
 import { examples } from "../lib/examples";
 import { downloadIcs, googleCalendarUrl, outlookCalendarUrl } from "../lib/calendar";
 import type { AnalysisResult, Deadline, ExtractedDocument } from "../lib/types";
-import { detectLocale, messages, uiLanguages, type Locale } from "../lib/i18n";
+import { detectLocale, messages, providerDisclosure, uiLanguages, type Locale } from "../lib/i18n";
 
 const levels = ["Simple", "Standard", "Detailed"];
 type Stage = "start" | "review" | "processing" | "result";
@@ -147,11 +147,12 @@ function StartView({ demoMode, dragging, setDragging, onFile, inputRef, pasteOpe
 function Step({ number, icon, title, text }: { number: string; icon: React.ReactNode; title: string; text: string }) { return <article className="step"><span className="step-number">{number}</span><div className="step-icon">{icon}</div><h3>{title}</h3><p>{text}</p></article>; }
 
 function ReviewView({ document: doc, language, setLanguage, level, setLevel, analyze, reset, error, t, providers, provider, setProvider }: { document: ExtractedDocument; language: string; setLanguage: (value: string) => void; level: string; setLevel: (value: string) => void; analyze: () => void; reset: () => void; error: string; t: ReturnType<typeof messages>; providers: ProviderOption[]; provider: string; setProvider: (value: string) => void }) {
+  const selectedProviderName = providers.find((item) => item.id === provider)?.name || "AI provider";
   return <section className="workspace-shell narrow"><button className="back-button" onClick={reset}><ArrowLeft size={17}/>{t.startOver}</button><div className="review-head"><span className="success-icon"><Check size={22}/></span><div><span className="kicker">{t.ready}</span><h1>{t.explainHow}</h1><p>{t.extracted}</p></div></div>
     <div className="document-chip"><FileCheck2 size={23}/><div><strong>{doc.name}</strong><span>{doc.pages.length} {doc.pages.length === 1 ? t.page : t.pages} · {doc.text.length.toLocaleString()} {t.characters} {doc.hasOcr ? `· ${t.ocrUsed}` : `· ${t.textExtracted}`}</span></div><button onClick={reset} aria-label="Remove document"><X size={18}/></button></div>
     {doc.lowConfidenceOcr && <div className="inline-warning"><AlertCircle size={19}/><span>{t.ocrWarning}</span></div>}
     <div className="settings-card"><label><span><Sparkles size={18}/>AI provider</span><select value={provider} onChange={(event) => setProvider(event.target.value)}><option value="">Configure a provider in Settings</option>{providers.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.model}</option>)}</select></label><label className="settings-field-gap"><span><Globe2 size={18}/>{t.explanationLanguage}</span><select value={language} onChange={(e) => setLanguage(e.target.value)}>{uiLanguages.map((item) => <option key={item.code} value={item.analysis}>{item.label}</option>)}</select></label><fieldset><legend><Sparkles size={18}/>{t.explanationLevel}</legend><div className="segment">{levels.map((item) => <button type="button" key={item} className={level === item ? "active" : ""} onClick={() => setLevel(item)}><strong>{item === "Simple" ? t.simple : item === "Standard" ? t.standard : t.detailed}</strong><span>{item === "Simple" ? t.simpleHint : item === "Standard" ? t.standardHint : t.detailedHint}</span></button>)}</div></fieldset></div>
-    <div className="send-disclosure"><ShieldCheck size={18}/><p><strong>{t.readyWhen}</strong><br/>{t.disclosure}</p></div>
+    <div className="send-disclosure"><ShieldCheck size={18}/><p><strong>{t.readyWhen}</strong><br/>{providerDisclosure(t.disclosure, selectedProviderName)}</p></div>
     {error && <ErrorMessage message={error}/>}<button className="primary-button explain-button" onClick={analyze}>{t.explain} <ArrowRight size={18}/></button>
   </section>;
 }

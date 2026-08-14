@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { detectLocale, messages, providerDisclosure, uiLanguages } from "../lib/i18n.ts";
 
 async function render(host = "localhost") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -70,4 +71,26 @@ test("public demo blocks provider settings and exposes no configured providers",
   assert.deepEqual(await status.json(), { providers: [] });
   const settings = await worker.fetch(new Request("https://comprendoc.example.chatgpt.site/api/providers"), environment, context);
   assert.equal(settings.status, 403);
+});
+
+test("supports requested interface and explanation languages", () => {
+  const languages = new Map(uiLanguages.map((language) => [language.code, language.analysis]));
+  assert.equal(languages.get("ko"), "Korean");
+  assert.equal(languages.get("fr"), "French");
+  assert.equal(languages.get("de"), "German");
+  assert.equal(languages.get("zh-TW"), "Traditional Chinese");
+});
+
+test("detects Traditional Chinese variants without falling back to Simplified Chinese", () => {
+  assert.equal(detectLocale(["zh-TW"]), "zh-TW");
+  assert.equal(detectLocale(["zh-Hant-HK"]), "zh-TW");
+  assert.equal(detectLocale(["zh_Hant"]), "zh-TW");
+  assert.equal(detectLocale(["zh-CN"]), "zh-CN");
+  assert.equal(detectLocale(["de-DE"]), "de");
+});
+
+test("disclosure names the provider that receives extracted text", () => {
+  assert.equal(providerDisclosure(messages("zh-CN").disclosure, "DeepSeek"), "提取的文本（不是原文件）将发送给 DeepSeek 分析。");
+  assert.match(providerDisclosure(messages("de").disclosure, "Mistral"), /Mistral/);
+  assert.doesNotMatch(providerDisclosure(messages("fr").disclosure, "Anthropic"), /OpenAI/);
 });
