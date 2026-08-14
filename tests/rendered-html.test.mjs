@@ -75,6 +75,18 @@ test("public demo blocks provider settings and exposes no configured providers",
   assert.equal(documents.status, 403);
 });
 
+test("local-first settings and library APIs do not require a browser token", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("test-local-first-api", `${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
+  const environment = { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  const context = { waitUntil() {}, passThroughOnException() {} };
+  const providerResponse = await worker.fetch(new Request("http://localhost/api/providers", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ provider: "unknown" }) }), environment, context);
+  assert.equal(providerResponse.status, 400);
+  const documentResponse = await worker.fetch(new Request("http://localhost/api/documents", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({}) }), environment, context);
+  assert.equal(documentResponse.status, 400);
+});
+
 test("supports requested interface and explanation languages", () => {
   const languages = new Map(uiLanguages.map((language) => [language.code, language.analysis]));
   assert.equal(languages.get("ko"), "Korean");

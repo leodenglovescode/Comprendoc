@@ -8,9 +8,9 @@ The public ChatGPT Sites deployment is deliberately a zero-cost, synthetic-only 
 
 ## What we built
 
-Comprendoc turns difficult paperwork into clear, structured explanations and identifies what users need to do next. The MVP supports PDF, DOCX, TXT, and pasted text. PDF text extraction, scanned-page OCR, and DOCX parsing happen locally in the browser; only extracted text and page metadata are sent to the server-side OpenAI Responses API.
+Comprendoc turns difficult paperwork into clear, structured explanations and identifies what users need to do next. The MVP supports PDF, DOCX, TXT, and pasted text. PDF text extraction, scanned-page OCR, and DOCX parsing happen locally in the browser; only extracted text and page metadata are sent through the server to the selected AI provider.
 
-The result is separated into useful sections rather than one large AI response: plain-language summary, important points, deadlines, next steps, dates, money, jargon, warnings, and exact source text. Actionable dates can open Google Calendar or Outlook, or download as an ICS file for Apple Calendar and other apps.
+The result is separated into useful sections rather than one large AI response: plain-language summary, important points, deadlines, next steps, dates, money, jargon, warnings, and exact source text. Actionable dates can open Google Calendar or Outlook, or download as an ICS file for Apple Calendar and other apps. Self-hosted users can save an encrypted processed result, reopen it without another AI request, and permanently delete it from the document library.
 
 ## Who it helps
 
@@ -37,10 +37,11 @@ The app includes synthetic enrollment and apartment examples so the deadline, so
 
 ## Privacy and safety
 
-- No accounts; the self-hosted document library is protected by the administrator token
+- No accounts or repeated unlock prompts in the local-first self-hosted app
 - Original files are never sent to the backend
 - Saving is opt-in; saved extracted text and processed results are encrypted at rest with AES-256-GCM
 - Provider keys are encrypted at rest with AES-256-GCM and are never returned by the settings API
+- Provider keys appear only in the password field while being entered; after saving, the frontend receives status and model metadata, never the key
 - Extracted document text is not logged or used in analytics
 - Uploaded document instructions are treated as untrusted data
 - Missing dates, years, times, timezones, fees, or consequences are never silently invented
@@ -50,7 +51,7 @@ Comprendoc is an explanation aid, not an official authority or professional advi
 ## Architecture
 
 - Next.js-compatible App Router via vinext, React, and TypeScript
-- Official OpenAI SDK, Responses API, and Structured Outputs with a strict Zod schema
+- OpenAI Responses API plus compatible adapters for Anthropic, DeepSeek, GLM, Kimi, and Mistral, validated with a strict Zod schema
 - PDF.js for embedded PDF text and page rendering
 - Tesseract.js for local OCR fallback on pages without useful embedded text
 - Mammoth for local DOCX extraction
@@ -62,29 +63,30 @@ Comprendoc is an explanation aid, not an official authority or professional advi
 
 ## How Codex helped
 
-Codex implemented the application from the product brief, including the responsive interface, local extraction pipeline, OCR fallback, structured OpenAI route, source anchoring, calendar integrations, demo data, accessible focus and reduced-motion states, error handling, build fixes, tests, and this documentation. It also ran the production build and automated checks before deployment.
+Codex implemented the application from the product brief, including the responsive interface, local extraction pipeline, OCR fallback, structured multi-provider analysis, encrypted provider and document storage, source anchoring, calendar integrations, demo data, multilingual UI, accessible focus and reduced-motion states, error handling, build fixes, tests, and this documentation. It also ran the production build and automated checks before deployment.
 
 ## How to run
 
 Requirements: Node.js 22.13 or newer.
 
 ```bash
-git clone <your-repository-url>
+git clone https://github.com/leodenglovescode/comprendoc
 cd Comprendoc
 npm install
 cp .env.example .env.local
 ```
 
-Generate a 32-byte encryption key and a separate administrator token:
+Generate the server-side 32-byte encryption key once:
 
 ```bash
 openssl rand -base64 32
-openssl rand -hex 32
 ```
 
-Put the first value in `COMPRENDOC_MASTER_KEY` and the second in `COMPRENDOC_ADMIN_TOKEN` inside `.env.local`. Start the app, open **Settings**, enter the administrator token, and save any combination of supported provider keys. Keys and saved processed documents are encrypted before SQLite/D1 storage. Provider keys are decrypted only in server memory for a model request and are never sent back to the browser. Back up the master key separately: losing or changing it makes every saved provider key and document undecryptable.
+Put that value in `COMPRENDOC_MASTER_KEY` inside `.env.local`. This is a server configuration secret, not a password users enter in Comprendoc: configure it once and leave it in the environment. Back it up separately because losing or changing it makes every saved provider key and document undecryptable.
 
-The administrator token protects settings changes, but the working app is intentionally designed as a personal self-hosted service. Keep it on a private network or place it behind your reverse proxy's authentication before exposing it to the internet; otherwise visitors could use the configured providers through the analysis endpoint.
+Start the app and open **Settings**. Settings and the document library open directly because Comprendoc is designed as a local-first, personal self-hosted service. Paste each provider API key once and save it. The key is sent only to the local server, encrypted before SQLite/D1 storage, and never returned by any API or displayed in the frontend after saving. During document analysis, the server decrypts the selected key only in memory and sends it to that provider over HTTPS. The browser receives only provider status, model metadata, and the finished analysis.
+
+Because there is deliberately no application login or administrator prompt, keep the working app on your own device or private network. If you expose it to the internet, put it behind authentication in your reverse proxy; otherwise visitors could change providers, use your configured API quota, or access saved documents. The public `chatgpt.site` demo is a separate read-only mode that blocks provider settings, document storage, uploads, and paid analysis server-side.
 
 To force a deployment into synthetic-only showcase mode on a non-Sites hostname, set:
 

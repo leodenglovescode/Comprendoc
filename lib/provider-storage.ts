@@ -89,13 +89,3 @@ export async function loadProviderCredential(requested?: string) {
   if (!row) throw new Error("No API provider is configured. Open Settings to add one.");
   return { provider: row.provider, apiKey: await decryptSecret(row), model: row.model, definition: providerDefinitions[row.provider] };
 }
-
-export async function verifyAdminToken(request: Request) {
-  const expected = process.env.COMPRENDOC_ADMIN_TOKEN;
-  const received = request.headers.get("x-comprendoc-admin-token") || "";
-  if (!expected || !received) return false;
-  const [a, b] = await Promise.all([expected, received].map((value) => crypto.subtle.digest("SHA-256", new TextEncoder().encode(value))));
-  const left = new Uint8Array(a); const right = new Uint8Array(b); let mismatch = 0;
-  for (let index = 0; index < left.length; index++) mismatch |= left[index] ^ right[index];
-  return mismatch === 0;
-}

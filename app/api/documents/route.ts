@@ -1,5 +1,4 @@
 import { deleteSavedDocument, getSavedDocument, listSavedDocuments, saveDocument } from "../../../lib/saved-document-storage";
-import { verifyAdminToken } from "../../../lib/provider-storage";
 import { analysisSchema } from "../../../lib/schema";
 import { z } from "zod";
 
@@ -11,8 +10,6 @@ function isDemo(request: Request) {
 
 async function authorize(request: Request) {
   if (isDemo(request)) return Response.json({ error: "Saved documents are disabled on the public demo." }, { status: 403 });
-  if (!process.env.COMPRENDOC_ADMIN_TOKEN) return Response.json({ error: "COMPRENDOC_ADMIN_TOKEN is not configured on this server." }, { status: 503 });
-  if (!await verifyAdminToken(request)) return Response.json({ error: "The administrator token is incorrect." }, { status: 401 });
   return null;
 }
 

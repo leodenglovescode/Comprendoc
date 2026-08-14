@@ -1,4 +1,4 @@
-import { deleteProviderCredential, listProviderStatuses, saveProviderCredential, verifyAdminToken } from "../../../lib/provider-storage";
+import { deleteProviderCredential, listProviderStatuses, saveProviderCredential } from "../../../lib/provider-storage";
 import { isProviderId, providerDefinitions } from "../../../lib/providers";
 
 export const runtime = "edge";
@@ -9,8 +9,6 @@ function isDemo(request: Request) {
 
 async function authorize(request: Request) {
   if (isDemo(request)) return Response.json({ error: "Provider settings are disabled on the public demo." }, { status: 403 });
-  if (!process.env.COMPRENDOC_ADMIN_TOKEN) return Response.json({ error: "COMPRENDOC_ADMIN_TOKEN is not configured on this server." }, { status: 503 });
-  if (!await verifyAdminToken(request)) return Response.json({ error: "The administrator token is incorrect." }, { status: 401 });
   return null;
 }
 

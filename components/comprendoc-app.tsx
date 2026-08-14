@@ -57,10 +57,8 @@ export function ComprendocApp({ demoMode }: { demoMode: boolean }) {
     if (!id) return;
     savedDocumentLoaded.current = true;
     const timer = window.setTimeout(() => {
-      const token = window.sessionStorage.getItem("comprendoc-admin-token") || "";
-      if (!token) { setError(t.unlockLibraryFirst); return; }
       setStage("processing"); setProgress({ message: t.loadingDocuments, value: 55 });
-      fetch(`/api/documents?id=${encodeURIComponent(id)}`, { headers: { "X-Comprendoc-Admin-Token": token } })
+      fetch(`/api/documents?id=${encodeURIComponent(id)}`)
         .then(async (response) => ({ response, body: await response.json() as { document?: SavedDocument } }))
         .then(({ response, body }) => {
           if (!response.ok || !body.document) throw new Error();
@@ -69,7 +67,7 @@ export function ComprendocApp({ demoMode }: { demoMode: boolean }) {
         .catch(() => { setError(t.loadDocumentError); setStage("start"); });
     }, 0);
     return () => window.clearTimeout(timer);
-  }, [demoMode, locale, t.loadDocumentError, t.loadingDocuments, t.unlockLibraryFirst]);
+  }, [demoMode, locale, t.loadDocumentError, t.loadingDocuments]);
 
   useEffect(() => {
     const config = uiLanguages.find((item) => item.code === locale) || uiLanguages[0];
@@ -129,11 +127,9 @@ export function ComprendocApp({ demoMode }: { demoMode: boolean }) {
 
   async function saveProcessedDocument() {
     if (!document || !analysis || demoMode || saveState === "saving" || saveState === "saved") return;
-    const token = window.sessionStorage.getItem("comprendoc-admin-token") || "";
-    if (!token) { setSaveState("error"); setSaveMessage(t.unlockLibraryFirst); return; }
     setSaveState("saving"); setSaveMessage("");
     try {
-      const response = await fetch("/api/documents", { method: "POST", headers: { "Content-Type": "application/json", "X-Comprendoc-Admin-Token": token }, body: JSON.stringify({ document, analysis, language, level }) });
+      const response = await fetch("/api/documents", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ document, analysis, language, level }) });
       if (!response.ok) throw new Error();
       setSaveState("saved"); setSaveMessage(t.documentSaved);
     } catch { setSaveState("error"); setSaveMessage(t.saveDocumentError); }
