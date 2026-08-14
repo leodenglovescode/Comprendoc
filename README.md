@@ -4,7 +4,7 @@
 
 Comprendoc is a privacy-minded document accessibility tool built for the OpenAI Build for Good developer challenge. It extracts document text in the browser, explains difficult paperwork in the reader's preferred language, identifies deadlines and required actions, links every deadline back to its source, and creates calendar events without requiring an account. The interface automatically follows the browser language, supports 11 mainstream languages, and includes a manual language picker.
 
-The public ChatGPT Sites deployment is deliberately a zero-cost, synthetic-only demo: it has no login, accepts no user documents, makes no OpenAI API requests, and blocks the analysis endpoint server-side. Clone and self-host the repository for the working application.
+The public ChatGPT Sites deployment is deliberately a zero-cost, synthetic-only demo: it has no login, accepts no user documents, makes no paid model requests, and blocks the analysis endpoint server-side. Clone and self-host the repository for the working application.
 
 ## What we built
 
@@ -39,8 +39,8 @@ The app includes synthetic enrollment and apartment examples so the deadline, so
 
 - No accounts or persistent document history
 - Original files are never sent to the backend
-- No database or uploaded-document storage
-- A user-entered API key is kept in browser session storage only and is never written to the server's disk
+- No uploaded-document storage
+- Provider keys are encrypted at rest with AES-256-GCM and are never returned by the settings API
 - Extracted document text is not logged or used in analytics
 - Uploaded document instructions are treated as untrusted data
 - Missing dates, years, times, timezones, fees, or consequences are never silently invented
@@ -57,6 +57,7 @@ Comprendoc is an explanation aid, not an official authority or professional advi
 - Browser-native ICS, Google Calendar, and Outlook Calendar generation
 - Cloudflare-compatible worker build for OpenAI Sites hosting
 - Two enforced modes: a read-only public demo on `*.chatgpt.site`, and a functional self-hosted app elsewhere
+- Encrypted SQLite/D1 provider vault for OpenAI, Anthropic, DeepSeek, GLM, Kimi, and Mistral
 
 ## How Codex helped
 
@@ -73,13 +74,16 @@ npm install
 cp .env.example .env.local
 ```
 
-For a shared or always-on private deployment, set the server-side key in `.env.local`:
+Generate a 32-byte encryption key and a separate administrator token:
 
 ```bash
-OPENAI_API_KEY=your_openai_api_key_here
+openssl rand -base64 32
+openssl rand -hex 32
 ```
 
-For a personal instance, you may leave that value unset and enter a key through **Settings**. The key is held only in that browser session, sent over HTTPS with the analysis request, never returned by the server, and cleared when the browser session ends. This avoids storing secrets in SQLite and avoids introducing a second encryption secret or account system.
+Put the first value in `COMPRENDOC_MASTER_KEY` and the second in `COMPRENDOC_ADMIN_TOKEN` inside `.env.local`. Start the app, open **Settings**, enter the administrator token, and save any combination of supported provider keys. Keys are encrypted before SQLite/D1 storage, are decrypted only in server memory for a model request, and are never sent back to the browser. Back up the master key separately: losing or changing it makes every saved provider key undecryptable.
+
+The administrator token protects settings changes, but the working app is intentionally designed as a personal self-hosted service. Keep it on a private network or place it behind your reverse proxy's authentication before exposing it to the internet; otherwise visitors could use the configured providers through the analysis endpoint.
 
 To force a deployment into synthetic-only showcase mode on a non-Sites hostname, set:
 

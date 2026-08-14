@@ -58,3 +58,16 @@ test("API route rejects empty input without exposing internals", async () => {
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { error: "No readable document text was provided." });
 });
+
+test("public demo blocks provider settings and exposes no configured providers", async () => {
+  const workerUrl = new URL("../dist/server/index.js", import.meta.url);
+  workerUrl.searchParams.set("test-provider-api", `${process.pid}-${Date.now()}`);
+  const { default: worker } = await import(workerUrl.href);
+  const environment = { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } };
+  const context = { waitUntil() {}, passThroughOnException() {} };
+  const status = await worker.fetch(new Request("https://comprendoc.example.chatgpt.site/api/providers/status"), environment, context);
+  assert.equal(status.status, 200);
+  assert.deepEqual(await status.json(), { providers: [] });
+  const settings = await worker.fetch(new Request("https://comprendoc.example.chatgpt.site/api/providers"), environment, context);
+  assert.equal(settings.status, 403);
+});
