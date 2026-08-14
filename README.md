@@ -2,7 +2,9 @@
 
 **Comprehend the docs. Act on what matters.**
 
-Comprendoc is a privacy-minded document accessibility tool built for the OpenAI Build for Good developer challenge. It extracts document text in the browser, explains difficult paperwork in the reader's preferred language, identifies deadlines and required actions, links every deadline back to its source, and creates calendar events without requiring an account.
+Comprendoc is a privacy-minded document accessibility tool built for the OpenAI Build for Good developer challenge. It extracts document text in the browser, explains difficult paperwork in the reader's preferred language, identifies deadlines and required actions, links every deadline back to its source, and creates calendar events without requiring an account. The interface automatically follows the browser language, supports 11 mainstream languages, and includes a manual language picker.
+
+The public ChatGPT Sites deployment is deliberately a zero-cost, synthetic-only demo: it has no login, accepts no user documents, makes no OpenAI API requests, and blocks the analysis endpoint server-side. Clone and self-host the repository for the working application.
 
 ## What we built
 
@@ -38,6 +40,7 @@ The app includes synthetic enrollment and apartment examples so the deadline, so
 - No accounts or persistent document history
 - Original files are never sent to the backend
 - No database or uploaded-document storage
+- A user-entered API key is kept in browser session storage only and is never written to the server's disk
 - Extracted document text is not logged or used in analytics
 - Uploaded document instructions are treated as untrusted data
 - Missing dates, years, times, timezones, fees, or consequences are never silently invented
@@ -53,6 +56,7 @@ Comprendoc is an explanation aid, not an official authority or professional advi
 - Mammoth for local DOCX extraction
 - Browser-native ICS, Google Calendar, and Outlook Calendar generation
 - Cloudflare-compatible worker build for OpenAI Sites hosting
+- Two enforced modes: a read-only public demo on `*.chatgpt.site`, and a functional self-hosted app elsewhere
 
 ## How Codex helped
 
@@ -69,10 +73,18 @@ npm install
 cp .env.example .env.local
 ```
 
-Set the server-side key in `.env.local`:
+For a shared or always-on private deployment, set the server-side key in `.env.local`:
 
 ```bash
 OPENAI_API_KEY=your_openai_api_key_here
+```
+
+For a personal instance, you may leave that value unset and enter a key through **Settings**. The key is held only in that browser session, sent over HTTPS with the analysis request, never returned by the server, and cleared when the browser session ends. This avoids storing secrets in SQLite and avoids introducing a second encryption secret or account system.
+
+To force a deployment into synthetic-only showcase mode on a non-Sites hostname, set:
+
+```bash
+COMPRENDOC_MODE=demo
 ```
 
 Then run:

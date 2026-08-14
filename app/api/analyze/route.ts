@@ -5,14 +5,22 @@ import { COMPRENDOC_SYSTEM_PROMPT } from "../../../lib/prompt";
 
 export const runtime = "edge";
 
+function isDemoRequest(request: Request) {
+  const host = new URL(request.url).hostname;
+  return process.env.COMPRENDOC_MODE === "demo" || host.endsWith(".chatgpt.site");
+}
+
 export async function POST(request: Request) {
   try {
+    if (isDemoRequest(request)) return Response.json({ error: "Live analysis is disabled on the public demo. Self-host Comprendoc to analyze your own documents." }, { status: 403 });
     const body = await request.json() as { pages?: Array<{ page: number; text: string }>; targetLanguage?: string; level?: string; documentName?: string };
     if (!body.pages?.length || !body.pages.some((page) => page.text?.trim())) return Response.json({ error: "No readable document text was provided." }, { status: 400 });
     const total = body.pages.reduce((sum, page) => sum + page.text.length, 0);
     if (total > 180_000) return Response.json({ error: "This document is too long for one safe analysis. Please split it into smaller files; no text was silently removed." }, { status: 413 });
-    if (!process.env.OPENAI_API_KEY) return Response.json({ error: "Live analysis is not configured yet. Add OPENAI_API_KEY, or try one of the ready-made examples." }, { status: 503 });
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const sessionKey = request.headers.get("x-comprendoc-api-key")?.trim();
+    const apiKey = process.env.OPENAI_API_KEY || sessionKey;
+    if (!apiKey) return Response.json({ error: "Add an OpenAI API key in Settings, or configure OPENAI_API_KEY on the server." }, { status: 503 });
+    const openai = new OpenAI({ apiKey });
     const pageText = body.pages.map((p) => `<page number="${p.page}">\n${p.text}\n</page>`).join("\n\n");
     const response = await openai.responses.parse({
       model: "gpt-5-mini",
