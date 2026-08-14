@@ -77,7 +77,16 @@ export function ComprendocApp({ demoMode }: { demoMode: boolean }) {
 
   function tryExample(id: string) {
     const example = examples.find((item) => item.id === id)!;
-    setDocument(example.document); setAnalysis(example.analysis); setError(""); setStage("result"); window.scrollTo({ top: 0, behavior: "smooth" });
+    const isStudent = example.id === "student";
+    const localizedAnalysis = locale === "en" ? example.analysis : {
+      ...example.analysis,
+      documentType: isStudent ? t.formsDescription : t.incomeDescription,
+      title: isStudent ? t.demoStudentTitle : t.demoApartmentTitle,
+      oneSentenceSummary: isStudent ? t.demoStudentSummary : t.demoApartmentSummary,
+      plainLanguageSummary: isStudent ? t.demoStudentPlain : t.demoApartmentPlain,
+      importantPoints: [], actionsRequired: [], deadlines: [], importantDates: [], importantAmounts: [], jargon: [], warnings: [], uncertaintyNotes: [],
+    };
+    setDocument(example.document); setAnalysis(localizedAnalysis); setError(""); setStage("result"); window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   async function analyze() {
