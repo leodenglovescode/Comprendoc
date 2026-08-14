@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { detectLocale, messages, providerDisclosure, uiLanguages } from "../lib/i18n.ts";
+import { detectLocale, interfaceLanguages, languageLabel, messages, missingTranslationKeys, providerDisclosure, uiLanguages } from "../lib/i18n.ts";
 
 async function render(host = "localhost") {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
@@ -79,6 +79,15 @@ test("supports requested interface and explanation languages", () => {
   assert.equal(languages.get("fr"), "French");
   assert.equal(languages.get("de"), "German");
   assert.equal(languages.get("zh-TW"), "Traditional Chinese");
+  assert.deepEqual(interfaceLanguages.map((language) => language.code), ["en", "zh-CN", "zh-TW", "fr", "de", "ko"]);
+});
+
+test("every selectable interface locale has complete site-wide copy", () => {
+  for (const locale of interfaceLanguages.map((language) => language.code)) {
+    assert.deepEqual(missingTranslationKeys(locale), [], `${locale} contains English fallbacks`);
+  }
+  assert.equal(languageLabel("zh-CN", "en"), "英语");
+  assert.equal(languageLabel("de", "ko"), "Koreanisch");
 });
 
 test("detects Traditional Chinese variants without falling back to Simplified Chinese", () => {
